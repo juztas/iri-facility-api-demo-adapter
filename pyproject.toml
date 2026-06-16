@@ -1,0 +1,13 @@
+[project]
+name = "iri-facility-api-demo-adapter"
+version = "0.1.0"
+description = "Per-domain reference implementation of the IRI facility adapters, split out as a starter kit for facilities onboarding to the IRI Facility API."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "iri-api-python @ git+https://github.com/doe-iri/iri-facility-api-python.git",
+    "redis>=7.2.0,<8.0.0",
+]
+
+[tool.ruff]
+line-length = 200
+exclude = [".venv", "__pycache__", "build", "dist"]
