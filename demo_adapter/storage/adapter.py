@@ -84,10 +84,22 @@ class StorageDemoAdapter(DemoAuthMixin, facility_adapter.FacilityAdapter):
                     path=self._resolve_path(m.path, user, code),
                     filesystem=m.filesystem,
                     performance_tier=m.performance_tier,
-                    quota_bytes=m.quota_bytes,
-                    available_bytes=m.available_bytes,
                     purge_policy_days=m.purge_policy_days,
                     shared=m.shared,
                     access=m.access,
                 ))
         return result
+
+    async def get_access_endpoints(
+        self: "StorageDemoAdapter",
+        resource: status_models.Resource,
+        user: User,
+        protocol: storage_models.AccessProtocol | None,
+        endpoint_id: str | None,
+    ) -> list[storage_models.AccessEndpoint]:
+        endpoints = STATE.access_endpoints.get(resource.id, [])
+        if protocol:
+            endpoints = [e for e in endpoints if e.protocol == protocol]
+        if endpoint_id:
+            endpoints = [e for e in endpoints if e.id == endpoint_id]
+        return endpoints
