@@ -35,6 +35,7 @@ class DemoState:
         self.user_allocations: list[account_models.UserAllocation] = []
         self.facility: facility_models.Facility | None = None
         self.locations: dict[str, list[storage_models.StorageInstance]] = {}
+        self.access_endpoints: dict[str, list[storage_models.AccessEndpoint]] = {}
         self.sites: list[facility_models.Site] = []
         self._init_state()
 
@@ -117,8 +118,15 @@ class DemoState:
             capability_ids=[self.capabilities["hpss"].id],
             current_status=status_models.Status.up,
             last_modified=day_ago,
-            resource_type=status_models.ResourceType.storage,
+            resource_type=status_models.ResourceType.storage_system,
             supported_endpoints=[status_models.Endpoint.filesystem],
+            attributes={
+                "schema_version": "1.0.0",
+                "storage_type": "urn:doe-iri:storage:tape",
+                "filesystem_technology": "hpss",
+                "vendor": "IBM",
+                "product": "HPSS",
+            },
         )
 
         cfs = status_models.Resource(
@@ -130,8 +138,15 @@ class DemoState:
             capability_ids=[self.capabilities["gpfs"].id],
             current_status=status_models.Status.up,
             last_modified=day_ago,
-            resource_type=status_models.ResourceType.storage,
+            resource_type=status_models.ResourceType.storage_system,
             supported_endpoints=[status_models.Endpoint.filesystem],
+            attributes={
+                "schema_version": "1.0.0",
+                "storage_type": "urn:doe-iri:storage:filesystem",
+                "filesystem_technology": "gpfs",
+                "vendor": "IBM",
+                "product": "Spectrum Scale",
+            },
         )
 
         login = status_models.Resource(
@@ -189,8 +204,6 @@ class DemoState:
                 access=_ro,
                 filesystem="gpfs-homes",
                 performance_tier="medium",
-                quota_bytes=40 * 1024**3,
-                available_bytes=28 * 1024**3,
                 purge_policy_days=None,
                 shared=False,
             ),
@@ -200,8 +213,6 @@ class DemoState:
                 access=_rw,
                 filesystem="lustre-scratch",
                 performance_tier="high",
-                quota_bytes=20 * 1024**4,
-                available_bytes=14 * 1024**4,
                 purge_policy_days=30,
                 shared=False,
             ),
@@ -211,8 +222,6 @@ class DemoState:
                 access=_rw,
                 filesystem="gpfs-project",
                 performance_tier="medium",
-                quota_bytes=2 * 1024**4,
-                available_bytes=1024**4,
                 purge_policy_days=None,
                 shared=True,
             ),
@@ -222,8 +231,6 @@ class DemoState:
                 access=_rw,
                 filesystem="gpfs-cfs",
                 performance_tier="medium",
-                quota_bytes=10 * 1024**4,
-                available_bytes=8 * 1024**4,
                 purge_policy_days=120,
                 shared=True,
             ),
@@ -238,8 +245,6 @@ class DemoState:
                 access=_rw,
                 filesystem="hpss",
                 performance_tier="tape",
-                quota_bytes=None,
-                available_bytes=None,
                 purge_policy_days=None,
                 shared=False,
             ),
@@ -254,8 +259,6 @@ class DemoState:
                 access=_rw,
                 filesystem="gpfs-homes",
                 performance_tier="medium",
-                quota_bytes=40 * 1024**3,
-                available_bytes=28 * 1024**3,
                 purge_policy_days=None,
                 shared=False,
             ),
@@ -265,8 +268,6 @@ class DemoState:
                 access=_rw,
                 filesystem="lustre-scratch",
                 performance_tier="high",
-                quota_bytes=20 * 1024**4,
-                available_bytes=14 * 1024**4,
                 purge_policy_days=30,
                 shared=False,
             ),
@@ -276,8 +277,6 @@ class DemoState:
                 access=_rw,
                 filesystem="gpfs-project",
                 performance_tier="medium",
-                quota_bytes=2 * 1024**4,
-                available_bytes=1024**4,
                 purge_policy_days=None,
                 shared=True,
             ),
@@ -287,8 +286,6 @@ class DemoState:
                 access=_rw,
                 filesystem="gpfs-cfs",
                 performance_tier="medium",
-                quota_bytes=10 * 1024**4,
-                available_bytes=8 * 1024**4,
                 purge_policy_days=120,
                 shared=True,
             ),
@@ -298,8 +295,6 @@ class DemoState:
                 access=_ro,
                 filesystem="gpfs-cfs",
                 performance_tier="medium",
-                quota_bytes=None,
-                available_bytes=None,
                 purge_policy_days=None,
                 shared=True,
             ),
@@ -309,8 +304,6 @@ class DemoState:
                 access=_rw,
                 filesystem="tmpfs",
                 performance_tier="high",
-                quota_bytes=512 * 1024**3,
-                available_bytes=480 * 1024**3,
                 purge_policy_days=7,
                 shared=False,
             ),
@@ -318,6 +311,74 @@ class DemoState:
 
         # Login nodes: same filesystem layout as CFS -- outside-of-job semantics for everything.
         self.locations[login.id] = self.locations[cfs.id]
+
+        globus_cfs_id = demo_uuid("endpoint", "globus-cfs")
+        globus_hpss_id = demo_uuid("endpoint", "globus-hpss")
+
+        self.access_endpoints[cfs.id] = [
+            storage_models.AccessEndpoint(
+                id="globus-cfs-demo",
+                resource_id=cfs.id,
+                protocol=storage_models.AccessProtocol.globus,
+                display_name="Demo CFS Globus",
+                endpoint_id=globus_cfs_id,
+                uri=f"globus://{globus_cfs_id}/",
+                root_path="/",
+                auth_type="globus",
+                capabilities=[
+                    storage_models.AccessCapability.list,
+                    storage_models.AccessCapability.read,
+                    storage_models.AccessCapability.write,
+                    storage_models.AccessCapability.transfer,
+                ],
+            ),
+            storage_models.AccessEndpoint(
+                id="xrootd-cfs-demo",
+                resource_id=cfs.id,
+                protocol=storage_models.AccessProtocol.xrootd,
+                display_name="Demo CFS XRootD",
+                endpoint="root://cfs.demo.example/",
+                auth_type="x509",
+                capabilities=[
+                    storage_models.AccessCapability.read,
+                    storage_models.AccessCapability.streaming,
+                ],
+            ),
+            storage_models.AccessEndpoint(
+                id="s3-cfs-demo",
+                resource_id=cfs.id,
+                protocol=storage_models.AccessProtocol.s3,
+                display_name="Demo CFS S3",
+                bucket="demo-cfs",
+                region="us-east-1",
+                endpoint_url="https://s3.demo.example",
+                auth_type="aws_s3",
+                capabilities=[
+                    storage_models.AccessCapability.list,
+                    storage_models.AccessCapability.read,
+                    storage_models.AccessCapability.write,
+                ],
+            ),
+        ]
+
+        self.access_endpoints[hpss.id] = [
+            storage_models.AccessEndpoint(
+                id="globus-hpss-demo",
+                resource_id=hpss.id,
+                protocol=storage_models.AccessProtocol.globus,
+                display_name="Demo HPSS Globus",
+                endpoint_id=globus_hpss_id,
+                uri=f"globus://{globus_hpss_id}/",
+                root_path="/home",
+                auth_type="globus",
+                capabilities=[
+                    storage_models.AccessCapability.list,
+                    storage_models.AccessCapability.read,
+                    storage_models.AccessCapability.write,
+                    storage_models.AccessCapability.transfer,
+                ],
+            ),
+        ]
 
         # Populate site resource_ids based on which resources are at each site
         site1.resource_ids = [r.id for r in self.resources if r.site_id == site1.id]
