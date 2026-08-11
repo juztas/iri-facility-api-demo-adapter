@@ -1,0 +1,7 @@
+# Example AMSC_PROJECT_MAPPING_FILE for the demo adapter.
+#
+# Maps each AmSC amsc_project_context to a fake provisioned local facility username.
+project_mapping:
+  justas-test: gtorok
+  virtual-organization: gtorok
+  amsc-admins-test-only: gtorok
