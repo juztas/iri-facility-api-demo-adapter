@@ -8,17 +8,28 @@ They only matter for compute's submit/update idempotency caching, so they
 live alongside the compute adapter.
 """
 import json
+import logging
 import os
 import time
+import warnings
 
 import redis.asyncio as aioredis
 from redis.exceptions import WatchError
 
 from app.idempotency import IdempotencyStore
 
+log = logging.getLogger(__name__)
+
 _LOCK_PREFIX = "LOCKED:"
 _DONE_PREFIX = "DONE:"
 _LOCK_TTL_SECONDS = int(os.environ.get("LOCK_TTL_SECONDS", 60))
+
+_INMEMORY_SCALING_WARNING = (
+    "InMemoryIdempotencyStore keeps state in a single process memory: it is not "
+    "shared across workers/replicas and is lost on restart. It does not scale beyond "
+    "a single-instance demo deployment -- use RedisIdempotencyStore (or an equivalent "
+    "shared store) in production."
+)
 
 
 class InMemoryIdempotencyStore(IdempotencyStore):
@@ -27,6 +38,8 @@ class InMemoryIdempotencyStore(IdempotencyStore):
     """
 
     def __init__(self, ttl: int | None = None):
+        warnings.warn(_INMEMORY_SCALING_WARNING, RuntimeWarning, stacklevel=2)
+        log.warning(_INMEMORY_SCALING_WARNING)
         self._ttl = ttl if ttl is not None else int(os.environ.get("IDEMPOTENCY_TTL_SECONDS", "86400"))
         self._data: dict[str, tuple[str, float]] = {}
 
@@ -71,7 +84,7 @@ class InMemoryIdempotencyStore(IdempotencyStore):
         data = {"body_hash": body_hash, "response_body": response_body, "response_status": response_status}
         self._set(cache_key, f"{_DONE_PREFIX}{json.dumps(data)}", self._ttl)
 
-    async def release_lock(self, cache_key: str) -> None:
+    async def delete_lock(self, cache_key: str) -> None:
         value = self._get(cache_key)
         if value and value.startswith(_LOCK_PREFIX):
             self._delete(cache_key)
@@ -142,7 +155,7 @@ class RedisIdempotencyStore(IdempotencyStore):
             except WatchError:
                 pass  # key changed between watch and execute; another request owns it now
 
-    async def release_lock(self, cache_key: str) -> None:
+    async def delete_lock(self, cache_key: str) -> None:
         """Delete the lock only if it still holds a LOCKED: value, using WATCH/MULTI/EXEC."""
         rkey = self._rkey(cache_key)
 

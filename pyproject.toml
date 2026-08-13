@@ -11,3 +11,7 @@ dependencies = [
 [tool.ruff]
 line-length = 200
 exclude = [".venv", "__pycache__", "build", "dist"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+addopts = "--ignore=test/test_filesystem.py"

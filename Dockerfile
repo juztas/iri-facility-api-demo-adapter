@@ -17,6 +17,7 @@ ENV IRI_API_ADAPTER_compute="demo_adapter.compute.adapter.ComputeDemoAdapter"
 ENV IRI_API_ADAPTER_filesystem="demo_adapter.filesystem.adapter.FilesystemDemoAdapter"
 ENV IRI_API_ADAPTER_storage="demo_adapter.storage.adapter.StorageDemoAdapter"
 ENV IRI_API_ADAPTER_task="demo_adapter.task.adapter.TaskDemoAdapter"
+ENV IRI_IDEMPOTENCY_STORE="demo_adapter.compute.idempotency.InMemoryIdempotencyStore"
 ENV API_URL_ROOT="http://localhost:8000"
 
 CMD ["uvicorn", "app.main:APP", "--host", "0.0.0.0", "--port", "8000"]

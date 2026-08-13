@@ -12,7 +12,7 @@ STAMP_DEPS  := $(VENV)/.deps
 
 .DEFAULT_GOAL := dev
 
-.PHONY: deps dev redis redis-stop redis-clean clean format ruff pylint audit bandit lint
+.PHONY: deps dev test redis redis-stop redis-clean clean format ruff pylint audit bandit lint
 
 $(STAMP_VENV):
 	$(UV) venv $(VENV)
@@ -25,7 +25,8 @@ $(STAMP_DEPS): $(STAMP_VENV) pyproject.toml
 	$(UV) pip install --python $(BIN)/python \
 		ruff \
 		pylint \
-		bandit
+		bandit \
+		pytest
 	touch $(STAMP_DEPS)
 
 deps: $(STAMP_DEPS)
@@ -42,9 +43,13 @@ dev: deps
 	IRI_API_ADAPTER_task=demo_adapter.task.adapter.TaskDemoAdapter \
 	IRI_LOG_FILE="$${IRI_LOG_FILE:-$${LOG_FILE:-$(IRI_LOG_FILE)}}" \
 	IRI_LOG_ROTATION_DAYS="$${IRI_LOG_ROTATION_DAYS:-$${LOG_ROTATION_DAYS:-$(IRI_LOG_ROTATION_DAYS)}}" \
+	IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.InMemoryIdempotencyStore \
 	DEMO_QUEUE_UPDATE_SECS=2 \
 	OPENTELEMETRY_ENABLED=true \
 	API_URL_ROOT='http://localhost:8000' uvicorn app.main:APP --reload --port 8000
+
+test: deps ## Run unit tests
+	$(BIN)/python -m pytest test/ -v
 
 REDIS_PORT      ?= 6379
 REDIS_CONTAINER := iri-demo-adapter-redis
