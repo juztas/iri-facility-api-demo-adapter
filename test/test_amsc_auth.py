@@ -97,6 +97,24 @@ class AmscAuthEndToEndTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 200)
 
+    def test_amsc_authenticated_request_logs_traceability_record(self):
+        """Facilities require an official record linking the AmSC identity to
+        the local user it resolved to -- this must not go unlogged."""
+        client = TestClient(APP)
+        with mock.patch.dict(os.environ, self._amsc_env(), clear=False), mock.patch.object(
+            amsc_auth, "_jwks_client", return_value=_FakeJWKSClient()
+        ):
+            with self.assertLogs(level="INFO") as captured:
+                response = client.get(
+                    f"{_BASE}/account/projects",
+                    headers={"authorization": f"Bearer {_make_token()}"},
+                )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            any("AmSC authenticated request" in message and "gtorok" in message for message in captured.output),
+            captured.output,
+        )
+
     def test_amsc_enabled_unmapped_project_rejected(self):
         client = TestClient(APP)
         with mock.patch.dict(os.environ, self._amsc_env(), clear=False), mock.patch.object(
