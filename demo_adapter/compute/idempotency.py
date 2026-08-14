@@ -71,7 +71,7 @@ class InMemoryIdempotencyStore(IdempotencyStore):
         data = {"body_hash": body_hash, "response_body": response_body, "response_status": response_status}
         self._set(cache_key, f"{_DONE_PREFIX}{json.dumps(data)}", self._ttl)
 
-    async def release_lock(self, cache_key: str) -> None:
+    async def delete_lock(self, cache_key: str) -> None:
         value = self._get(cache_key)
         if value and value.startswith(_LOCK_PREFIX):
             self._delete(cache_key)
@@ -142,7 +142,7 @@ class RedisIdempotencyStore(IdempotencyStore):
             except WatchError:
                 pass  # key changed between watch and execute; another request owns it now
 
-    async def release_lock(self, cache_key: str) -> None:
+    async def delete_lock(self, cache_key: str) -> None:
         """Delete the lock only if it still holds a LOCKED: value, using WATCH/MULTI/EXEC."""
         rkey = self._rkey(cache_key)
 

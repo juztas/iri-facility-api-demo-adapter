@@ -1,7 +1,6 @@
 """Compute domain demo adapter: job submission, status, cancellation."""
 import random
 
-from app.request_context import get_iri_facility_project
 from app.routers.compute import facility_adapter, models as compute_models
 from app.routers.status import models as status_models
 from app.types.user import User
@@ -18,8 +17,6 @@ class ComputeDemoAdapter(DemoAuthMixin, facility_adapter.FacilityAdapter):
         user: User,
         job_spec: compute_models.JobSpec,
     ) -> compute_models.Job:
-        facility_project = get_iri_facility_project()
-        account = facility_project or (job_spec.attributes.account if job_spec.attributes else None)
         return compute_models.Job(
             id="job_123",
             status=compute_models.JobStatus(
@@ -27,7 +24,7 @@ class ComputeDemoAdapter(DemoAuthMixin, facility_adapter.FacilityAdapter):
                 time=utc_timestamp(),
                 message="job submitted",
                 exit_code=0,
-                meta_data={"account": account},
+                meta_data={"account": "account1"},
             ),
         )
 
@@ -38,8 +35,6 @@ class ComputeDemoAdapter(DemoAuthMixin, facility_adapter.FacilityAdapter):
         job_spec: compute_models.JobSpec,
         job_id: str,
     ) -> compute_models.Job:
-        facility_project = get_iri_facility_project()
-        account = facility_project or (job_spec.attributes.account if job_spec.attributes else None)
         return compute_models.Job(
             id=job_id,
             status=compute_models.JobStatus(
@@ -47,7 +42,7 @@ class ComputeDemoAdapter(DemoAuthMixin, facility_adapter.FacilityAdapter):
                 time=utc_timestamp(),
                 message="job updated",
                 exit_code=0,
-                meta_data={"account": account},
+                meta_data={"account": "account1"},
             ),
         )
 
