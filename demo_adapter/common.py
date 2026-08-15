@@ -38,7 +38,7 @@ class DemoAuthMixin:
 
     Every FacilityAdapter ABC extends AuthenticatedAdapter (see
     app.routers.iri_router.AuthenticatedAdapter), so each independently
-    configured domain adapter must implement these three methods itself.
+    configured domain adapter must implement these methods itself.
     All seven demo adapters resolve to the same fake user via DEMO_USER.
     """
 
@@ -47,21 +47,7 @@ class DemoAuthMixin:
             raise HTTPException(status_code=401, detail="Invalid API key")
         return DEMO_USER.id
 
-    async def get_current_user_globus(
-        self: "DemoAuthMixin",
-        api_key: str,
-        client_ip: str | None,
-        globus_introspect: dict | None,
-    ) -> str:
-        return DEMO_USER.id
-
-    async def get_user(
-        self: "DemoAuthMixin",
-        user_id: str,
-        api_key: str,
-        client_ip: str | None,
-        globus_introspect: dict | None,
-    ) -> User:
+    async def get_user(self: "DemoAuthMixin", user_id: str, api_key: str, client_ip: str | None) -> User:
         if user_id != DEMO_USER.id:
             raise HTTPException(status_code=403, detail="User not found")
         return DEMO_USER
