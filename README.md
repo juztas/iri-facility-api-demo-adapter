@@ -44,9 +44,9 @@ A [`demo_adapter.combined.DemoAdapter`](demo_adapter/combined.py) class is also 
 
 ### Shared demo data and auth
 
-All 7 classes read from one shared, read-only `STATE` object ([demo_adapter/state.py](demo_adapter/state.py)) so the fake world stays consistent across domains (e.g. `status`'s resources reference `facility`'s site ids, `storage`'s locations are keyed by `status`'s resource ids). They also all mix in [`DemoAuthMixin`](demo_adapter/common.py) for the `get_current_user`/`get_current_user_globus`/`get_user` methods every domain's ABC requires -- every demo class resolves auth to the same fake user, `gtorok`.
+All 7 classes read from one shared, read-only `STATE` object ([demo_adapter/state.py](demo_adapter/state.py)) so the fake world stays consistent across domains (e.g. `status`'s resources reference `facility`'s site ids, `storage`'s locations are keyed by `status`'s resource ids). They also all mix in [`DemoAuthMixin`](demo_adapter/common.py) for the `get_current_user`/`get_user` methods every domain's ABC requires -- every demo class resolves auth to the same fake user, `gtorok`.
 
-If you write your own adapter and mix in `DemoAuthMixin` alongside an upstream ABC that extends `AuthenticatedAdapter` (account, compute, filesystem, storage, task all do; facility and status don't), **list the mixin first**: `class MyAdapter(DemoAuthMixin, facility_adapter.FacilityAdapter)`, not the other way around. Python resolves methods left-to-right through the MRO, and `AuthenticatedAdapter` declares those same three methods as abstract -- if it comes first, Python finds the abstract version before it finds your mixin's concrete one, and the class becomes impossible to instantiate.
+If you write your own adapter and mix in `DemoAuthMixin` alongside an upstream ABC that extends `AuthenticatedAdapter` (account, compute, filesystem, storage, task all do; facility and status don't), **list the mixin first**: `class MyAdapter(DemoAuthMixin, facility_adapter.FacilityAdapter)`, not the other way around. Python resolves methods left-to-right through the MRO, and `AuthenticatedAdapter` declares those same two methods as abstract -- if it comes first, Python finds the abstract version before it finds your mixin's concrete one, and the class becomes impossible to instantiate.
 
 ## Overriding one domain
 
@@ -83,7 +83,7 @@ uv run uvicorn app.main:APP --reload --port 8000
 
 Other targets: `make redis` (starts a local Redis container for `RedisIdempotencyStore` and prints the env vars to wire it up), `make lint` (ruff + pylint + bandit + pip-audit), `make clean` (removes the venv and the filesystem sandbox).
 
-If `make`/`uv sync` fails trying to build `cryptography` from source (a transitive dependency via `globus-sdk`), that means no prebuilt wheel was available for your exact platform/Python combination -- this is unrelated to this repo's code (the upstream repo pulls in the same dependency). Easiest fix is to just use Docker; alternatively install a matching Rust toolchain (`rustup target add <your-target>`) so the source build succeeds.
+If `make`/`uv sync` fails trying to build `cryptography` from source (a transitive dependency via `pyjwt[crypto]`), that means no prebuilt wheel was available for your exact platform/Python combination -- this is unrelated to this repo's code (the upstream repo pulls in the same dependency). Easiest fix is to just use Docker; alternatively install a matching Rust toolchain (`rustup target add <your-target>`) so the source build succeeds.
 
 AmSC-internal contributors with `iri-facility-api-python` checked out as a sibling directory can iterate against local changes to that repo without pushing first, via a local (uncommitted) `uv.toml`:
 
@@ -96,4 +96,4 @@ The committed default in `pyproject.toml` stays a git dependency, so this repo w
 
 ## Everything else
 
-For anything not specific to this split (OpenTelemetry, the idempotency store, `IRI_SHOW_MISSING_ROUTES`, Globus auth), see the [iri-facility-api-python README](https://github.com/doe-iri/iri-facility-api-python#readme) -- none of that changes here. The only addition this repo makes on top is `demo_adapter.compute.idempotency.RedisIdempotencyStore` / `InMemoryIdempotencyStore`, equivalent to the upstream demo's idempotency stores, usable via `IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.RedisIdempotencyStore`.
+For anything not specific to this split (OpenTelemetry, the idempotency store, `IRI_SHOW_MISSING_ROUTES`), see the [iri-facility-api-python README](https://github.com/doe-iri/iri-facility-api-python#readme) -- none of that changes here. The only addition this repo makes on top is `demo_adapter.compute.idempotency.RedisIdempotencyStore` / `InMemoryIdempotencyStore`, equivalent to the upstream demo's idempotency stores, usable via `IRI_IDEMPOTENCY_STORE=demo_adapter.compute.idempotency.RedisIdempotencyStore`.
